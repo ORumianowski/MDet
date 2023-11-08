@@ -40,7 +40,7 @@ main_theme = theme_bw()+
 
 ```{r}
 #Parametres
-i = 20 # Nombre d'especes
+i = 21 # Nombre d'especes
 Xmin = 0
 Xmax = 2
 X0 = (Xmax - Xmin)/2
@@ -133,6 +133,8 @@ sigma = 0.3
 
 ############### Simuler LV pour un nombre arbitraire d'espece ############
 
+time_max = 1000
+
 #Conditions initiales
 x = seq(from = 0, to = 2, length.out = i) # Valeurs des phenotypes
 k = c()
@@ -149,22 +151,44 @@ X = matrix(rep(x,i), ncol = i, nrow = i, byrow = TRUE)
 
 #Calcul de la matrice M
 D = t(X) - X
-A = exp(-0.5*D^2/(sigma^2))
-M = A/t(K)
+
 
 #Resolution du systeme d'ODE
 model <- function(t,N,sigma){
+  
+  M = exp(-0.5*D^2/(sigma^2))/t(K)
+  
   dN <- r * N * (1 - N %*% M)
+  
   return(list(dN))
 }
 
-ode <-ode(N0,0:100,model,parms = sigma)
+ode <-ode(N0,0:time_max,model,parms = sigma)
+
+
 ```
 
-
 ```{r}
+
+sigma = 5
 # Representation
 #barplot(ode[100,1:i+1])
+ode <- ode(N0,0:time_max,model,parms = sigma)
+
+ode <- as.data.frame(ode)
+#colnames(ode) <- c("t",'x1','x2','x3')
+ode_plot = ode%>%
+  pivot_longer(-time, values_to = "dens", names_to = "sp_ID")
+
+ggplot(ode_plot)+
+  geom_line(aes(time, dens, col = sp_ID))
+```
+
+```{r}
+sigma = 0.3
+# Representation
+#barplot(ode[100,1:i+1])
+ode <-ode(N0,0:time_max,model,parms = sigma)
 
 ode <- as.data.frame(ode)
 #colnames(ode) <- c("t",'x1','x2','x3')
@@ -188,21 +212,37 @@ ggplot(ode_plot)+
 
 
 ```{r}
-######## Nombre d'espece qui persiste en fonction de sigma (pour l'instant ne marche pas..) ##############
-seuil <- 0.05
+
+g = ode[nrow((ode)),-1] > 0.05
+
+sum(g)
+
+```
+
+```{r}
+
+seuil <- 0.001
+sigma_bank = seq(0.1,2,by = 0.05)
+
 nb_especes <- c()
-for (sigma in seq(0.3,5,by = 0.1)){
-  ode <-ode(N0,0:100,model,parms = sigma)
-  nb = 0
-  for (m in tail(ode,1)[,1:i+1]){
-    if (m>seuil){
-      nb = nb + 1
-    }
+
+for (sigma_i in sigma_bank){{
+  
+  ode2 <-ode(N0,0:time_max,model,parms = sigma_i)
+  nb = sum(ode2[nrow((ode2)),-1] > seuil)
   }
   nb_especes <- c(c(nb_especes),c(nb))
   
 }
-plot(seq(0.3,5,by = 0.1),nb_especes)
+
+res = tibble(sigma_bank,nb_especes)
+
+ggplot()+
+  geom_point(data = res, aes(x = sigma_bank, y = nb_especes))+
+  labs(title = " ",
+       x = "Sigma",
+       y = "Nombre d'espèces en régime stationnaire")
+
 ```
 
 
