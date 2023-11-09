@@ -1,5 +1,5 @@
 ---
-title: "MDet projet"
+title: "TD Dynamique adaptative - MDet"
 author: "Jeanne Thill & Odin Rumianowski"
 date: "2023-11-08"
 output :
@@ -15,7 +15,7 @@ output :
 knitr::opts_chunk$set(echo = TRUE, cache=TRUE)
 ```
 
-```{r, echo = FALSE}
+```{r, include= FALSE}
 library(rgl)
 library(deSolve)
 library(tidyverse)
@@ -23,7 +23,7 @@ library(plotly)
 ```
 
 
-```{r}
+```{r, include= FALSE}
 main_theme = theme_bw()+
   theme(line = element_blank(), 
         axis.line = element_line(colour = "black"),
@@ -37,6 +37,18 @@ main_theme = theme_bw()+
         axis.title=element_text(size=28))
 ```
 
+# Modele ecologique
+
+On considere un modèle de competition. Dans notre modèle, 21 phénotypes dont le trait X est distribué sur un intervalle allant de 0 à 2, sont en compétition. Chaque population de chaque phénotype possède un taux de croissance intrasèque identique r. La densité maximale est spécifique à chaque phénotype et dépendant uniquement de la valeur de son trait selon la formule :
+
+$$ K(x) = max(K_0 - λ(x-x_0)^2, 0) $$
+L'intensité de la compétition entre deux phénotypes i et j vaut : 
+$$ a(x_i, x_j) =exp(-\frac{(x_i-xj)^2}{2σ^2})  $$
+
+La dynamique de chaque population s'écrit alors :
+
+$$ \frac{dn_i}{dt} = r.n_i.(\sum_{j=1}^{n} \frac{a(x_i, x_j).n_j}{K(x_i)} )  $$
+Pour l'ensemble des manipulations, on fixe certaines valeurs par défaut aux paramètres.
 
 ```{r}
 #Parametres
@@ -51,7 +63,7 @@ r = 1
 
 ```
 
-
+On implemente les fonctions méthémqtiques du modèle.
 ```{r}
 ############ Fonctions #############
 
@@ -69,6 +81,11 @@ fitness = function(x1, x2, r_ = r ){
 
 ```
 
+
+# Fitness d'invasion
+
+Afin de comprendre ce qu'implique notre modèle avec les valeurs de ses paramètres initiaux, nous representaons graphiquement la valeur de la fitness relative dans le cas de l'appration d'un nouveau phénotype. Ces figure en trois dimensions fournissent le paysage adaptatif de notre modèle.
+
 ```{r}
 ## Set range and domain of plot
 x1_interval  <- seq(0.1, 1.9, length.out = 25);
@@ -81,15 +98,14 @@ z  <- outer(x1_interval,x2_interval,
 
 p  <- persp(x1_interval,x2_interval,z, theta = 30, phi = 20,
             col = "lightblue", shade = 0.4, ticktype = "detailed")
-p
+
 ```
+
 ```{r}
 plot_ly() %>% add_surface(x = ~x1_interval, y = ~x2_interval, z = ~z)
 ```
 
-
-
-
+Le Pairwise Invasibily Plot (PIP) fournit un résumé de la situation en représentant seulement le signe de la différence des fitness.
 
 ```{r}
 ## Set range and domain of plot
@@ -115,19 +131,18 @@ ggplot(df, aes(x = x, y = y, fill = couleur)) +
   theme_minimal()+
   labs(fill = "Légende\nNoir = Négatif\nBleu = Positif")
 ```
-```{r}
-K_cap = function (X){
- max(0, K0 - lambda*(X - X0)^2) + 10^(-9) # On rajoute 10^-9 pour ne pas avoir de pb de division par 0
+```{r, include = FALSE}
+
+# On rajoute 10^-9 pour ne pas avoir de pb de division par 0
+K_cap = function(x, K0_ = K0, lambda_= lambda, x0 = X0){
+  max(0, (K0_ - lambda_*(x-x0)**2) + 10^(-9) )
 }
+
 ```
 
+# Simulations
 
-
-```{r}
-sigma = 0.3
-```
-
-
+Pour simuler ces compétitions, le modèle est implémenté sous forme matricielle. La dynamique est simulé pour un temps de 1000 et pour deux valeurs de sigma.
 
 ```{r}
 
@@ -200,24 +215,19 @@ ggplot(ode_plot)+
 ```
 
 
+On observe que le nombre de phénotypes sui persistent dans le temps dépend notamment de la valeurs de sigma. Pour des faibles valeurs, un plus grand nombres de phénotypes se maintiennent.
+
 ```{r}
 ode_plot$sp_ID <- as.numeric(ode_plot$sp_ID)
 ode_plot$trait <- x[as.numeric(ode_plot$sp_ID)]
 
 ggplot(ode_plot)+
-  geom_raster(aes(trait, time,  fill=dens))+
+  geom_raster(aes(trait, time,  fill=dens**2))+
   scale_fill_gradient2(low = "white" ,
                        high = "red")
 ```
 
-
-```{r}
-
-g = ode[nrow((ode)),-1] > 0.05
-
-sum(g)
-
-```
+Le script et le graphique suivant permettent d'étudier le nombre de phénotypes se maintenant en fonction de la valeur de sigma. Les valeurs de sigma testées sont comprises entre 0.1 et 2.
 
 ```{r}
 
@@ -245,17 +255,24 @@ ggplot()+
 
 ```
 
+# Modelisation de mutations
+
+Dans cette partie, 
 
 ```{r}
 ######## Implementation de mutation ##########
 
 #parametres
+
 p = 0.1 #taux de la pop qui mute
 T = 10000
 t = 200
 n = rep(0,i)
 n[i/6] <- 1 # densites de pop initiale (une seule espece)
 N0 <- t(as.matrix(n))
+
+sigma = 0.25
+
 
 #Initialisation des valeures de K
 k = c()
@@ -264,6 +281,8 @@ for (i in 1:length(x)){
 }
 K = matrix(rep(k,i), ncol = i, nrow = i, byrow = FALSE)
 
+
+A = exp(-0.5*D^2/(sigma^2))
 M = A/t(K)
 
 ode <-ode(N0,1:t,model,parms = sigma)
@@ -294,7 +313,7 @@ ode_mutation_plot$sp_ID <- as.numeric(ode_mutation_plot$sp_ID)
 ode_mutation_plot$trait <- x[as.numeric(ode_mutation_plot$sp_ID)]
 
 ggplot(ode_mutation_plot)+
-  geom_raster(aes(trait, time,  fill=dens))+
+  geom_raster(aes(trait, time,  fill=dens**2))+
   scale_fill_gradient2(low = "white" ,
                        high = "red") +
   main_theme
