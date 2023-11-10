@@ -12,7 +12,7 @@ output :
 ---
 
 ```{r, echo = FALSE}
-knitr::opts_chunk$set(echo = TRUE, cache=TRUE)
+knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r, include= FALSE}
@@ -269,7 +269,7 @@ t = 400 #pas de temps entre chaque mutation
 n = rep(0,i) 
 n[4] <- 1 # densites de pop initiale (une seule espece)
 N0 <- t(as.matrix(n))
-sigma = 0.3
+sigma = 0.2
 
 #Initialisation des valeures de K
 k = c()
@@ -278,7 +278,9 @@ for (i in 1:length(x)){
 }
 K = matrix(rep(k,i), ncol = i, nrow = i, byrow = FALSE)
 
+A = exp(-0.5*D^2/(sigma^2))
 M = A/t(K)
+
 
 # Evolution sans mutation sur le premier pas de temps t
 ode <-ode(N0,1:t,model,parms = sigma, method = 'lsoda')
