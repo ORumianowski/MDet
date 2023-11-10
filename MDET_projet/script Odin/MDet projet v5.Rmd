@@ -39,7 +39,7 @@ main_theme = theme_bw()+
 
 # Modele ecologique
 
-On considere un modèle de competition. Dans notre modèle, 21 phénotypes dont le trait X est distribué sur un intervalle allant de 0 à 2, sont en compétition. Chaque population de chaque phénotype possède un taux de croissance intrasèque identique r. La densité maximale est spécifique à chaque phénotype et dépendant uniquement de la valeur de son trait selon la formule :
+On considere un modèle de competition. Dans notre modèle, 21 phénotypes dont le trait X est distribué sur un intervalle allant de 0 à 2, sont en compétition. Chaque population de chaque phénotype possède un taux de croissance intrasèque identique r. La densité maximale est spécifique à chaque phénotype et dépend uniquement de la valeur de son trait selon la formule :
 
 $$ K(x) = max(K_0 - λ(x-x_0)^2, 0) $$
 L'intensité de la compétition entre deux phénotypes i et j vaut : 
@@ -63,7 +63,7 @@ r = 1
 
 ```
 
-On implemente les fonctions méthémqtiques du modèle.
+On implèmente les fonctions mathématiques du modèle.
 ```{r}
 ############ Fonctions #############
 
@@ -84,7 +84,7 @@ fitness = function(x1, x2, r_ = r ){
 
 # Fitness d'invasion
 
-Afin de comprendre ce qu'implique notre modèle avec les valeurs de ses paramètres initiaux, nous representaons graphiquement la valeur de la fitness relative dans le cas de l'appration d'un nouveau phénotype. Ces figure en trois dimensions fournissent le paysage adaptatif de notre modèle.
+Afin de comprendre ce qu'implique notre modèle avec les valeurs de ses paramètres initiaux, nous représentons graphiquement la valeur de la fitness relative dans le cas de l'apparition d'un nouveau phénotype. Ces figure en trois dimensions fournissent le paysage adaptatif de notre modèle.
 
 ```{r}
 ## Set range and domain of plot
@@ -142,7 +142,7 @@ K_cap = function(x, K0_ = K0, lambda_= lambda, x0 = X0){
 
 # Simulations
 
-Pour simuler ces compétitions, le modèle est implémenté sous forme matricielle. La dynamique est simulé pour un temps de 1000 et pour deux valeurs de sigma.
+Pour simuler ces compétitions, le modèle est implémenté sous forme matricielle. La dynamique est simulée pour un temps de 1000 et pour deux valeurs de sigma.
 
 ```{r}
 
@@ -155,8 +155,8 @@ x = seq(from = 0, to = 2, length.out = i) # Valeurs des phenotypes
 k = c()
 for (i in 1:length(x)){
   k = c(c(k),c(K_cap(x[i])))
-}
- # K de chaque espece
+}# K de chaque espece
+
 n = rep(1/i,i) #densite de pop initiale
 
 # On met sous forme de matrice
@@ -187,7 +187,7 @@ ode <-ode(N0,0:time_max,model,parms = sigma)
 
 sigma = 5
 # Representation
-#barplot(ode[100,1:i+1])
+
 ode <- ode(N0,0:time_max,model,parms = sigma)
 
 ode <- as.data.frame(ode)
@@ -202,7 +202,7 @@ ggplot(ode_plot)+
 ```{r}
 sigma = 0.3
 # Representation
-#barplot(ode[100,1:i+1])
+
 ode <-ode(N0,0:time_max,model,parms = sigma)
 
 ode <- as.data.frame(ode)
@@ -257,22 +257,19 @@ ggplot()+
 
 # Modelisation de mutations
 
-Dans cette partie, 
+Dans cette partie, on modélise la dynamique adaptative sur le temps long (T) d'une population en considérant que p = 10% de la population mute à intervalle de temps régulier (t). La population initiale est monomorphe et l'étalement de la compétition (sigma = 0.3) est assez faible.
 
 ```{r}
-######## Implementation de mutation ##########
+#Implementation des mutations
 
 #parametres
-
 p = 0.1 #taux de la pop qui mute
-T = 10000
-t = 200
-n = rep(0,i)
-n[i/6] <- 1 # densites de pop initiale (une seule espece)
+Temps = 10000 #temps de la simulation
+t = 400 #pas de temps entre chaque mutation
+n = rep(0,i) 
+n[4] <- 1 # densites de pop initiale (une seule espece)
 N0 <- t(as.matrix(n))
-
-sigma = 0.25
-
+sigma = 0.3
 
 #Initialisation des valeures de K
 k = c()
@@ -281,29 +278,45 @@ for (i in 1:length(x)){
 }
 K = matrix(rep(k,i), ncol = i, nrow = i, byrow = FALSE)
 
-
-A = exp(-0.5*D^2/(sigma^2))
 M = A/t(K)
 
-ode <-ode(N0,1:t,model,parms = sigma)
+# Evolution sans mutation sur le premier pas de temps t
+ode <-ode(N0,1:t,model,parms = sigma, method = 'lsoda')
 ode_mutation <- ode
 
-#trouver un moyen de faire muter tout le monde... (peut etre metre un seuil de densité min..)
 
-for (z in 2:(T/t)){
-  N0 <- t(as.matrix(tail(ode,1)[,1:i+1]))
-  a = runif(1)
-  index = which.max(N0)
-  if (a<0.5){ #mutation vers la gauche
-    N0[max(0,index-1)] <- p*N0[index]
-    N0[index] <- (1-p)*N0[index]
-  } else { #mutation vers la droite
-    N0[min(i,index+1)] <- p*N0[index]
-    N0[index] <- (1-p)*N0[index]
-  }
-  ode <-ode(N0,(z*t):(z*t+t),model,parms = sigma)
+seuil = 0.05 #densité min on considère qu'un trait avec une densité < seuil a une densité de 0
+
+
+for (z in 2:(Temps/t)){
   
-  ode_mutation <- rbind(ode_mutation,ode)
+  #Elimination des traits sous le seuil
+  tail <- as.matrix(tail(ode,1)[,1:i+1])
+  for (j in 1:length(tail)){
+    if(tail[j] < seuil){
+      tail[j] <- 0
+    }
+  }
+  N0 <- t(tail)
+  
+  # Mutation des traits restants
+  for (index in which(tail != 0)){
+    a = runif(1)
+    if (a<0.5){ #mutation vers la gauche
+      N0[max(0,index-1)] <- p*N0[index]
+      N0[index] <- (1-p)*N0[index]
+    } else { #mutation vers la droite
+      N0[min(i,index+1)] <- p*N0[index]
+      N0[index] <- (1-p)*N0[index]
+    }
+   
+  }
+  
+  
+  ode <-ode(N0,(z*t):(z*t+t),model,parms = sigma, method='lsoda')
+  
+  ode_mutation <- rbind(ode_mutation,ode) 
+
 }
 
 ode_mutation_plot = as.data.frame(ode_mutation)%>%
@@ -312,21 +325,12 @@ ode_mutation_plot = as.data.frame(ode_mutation)%>%
 ode_mutation_plot$sp_ID <- as.numeric(ode_mutation_plot$sp_ID)
 ode_mutation_plot$trait <- x[as.numeric(ode_mutation_plot$sp_ID)]
 
-ggplot(ode_mutation_plot)+
-  geom_raster(aes(trait, time,  fill=dens**2))+
-  scale_fill_gradient2(low = "white" ,
-                       high = "red") +
-  main_theme
+ ggplot(ode_mutation_plot)+
+   geom_tile(aes(trait, time, fill = dens))+
+   scale_fill_gradient2(low = "white" ,
+                        high = "red") +
+   main_theme
 ```
 
-
-```{r}
-# ggplot(ode_mutation_plot)+
-#   geom_tile(aes(trait, time,  fill=dens))+
-#   scale_fill_gradient2(low = "white" ,
-#                        high = "red") +
-#   main_theme
-
-```
 
 
