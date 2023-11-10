@@ -101,10 +101,10 @@ ggplot(ode_plot)+
 ######## Nombre d'espece qui persiste en fonction de sigma (pour l'instant ne marche pas..) ##############
 seuil <- 0.05
 nb_especes <- c()
-for (sigma in seq(0.3,5,by = 0.1)){
-  ode <-ode(N0,0:100,model,parms = sigma)
+for (s in seq(0.3,5,by = 0.1)){
+  ode <- ode(N0,0:100,model,parms = s)
   nb = 0
-  for (m in tail(ode,1)[,1:i+1]){
+  for (m in as.vector(tail(ode,1)[,1:i+1])){
     if (m>seuil){
       nb = nb + 1
     }
@@ -117,9 +117,9 @@ plot(seq(0.3,5,by = 0.1),nb_especes)
 
 #parametres
 p = 0.1 #taux de la pop qui mute
-T = 100000
-t = 200
-n = rep(0,i)
+Temps = 10000 #temps de la simulation
+t = 200 #pas de temps entre chaque mutation
+n = rep(0,i) 
 n[i/6] <- 1 # densites de pop initiale (une seule espece)
 N0 <- t(as.matrix(n))
 
@@ -132,25 +132,44 @@ K = matrix(rep(k,i), ncol = i, nrow = i, byrow = FALSE)
 
 M = A/t(K)
 
-ode <-ode(N0,1:t,model,parms = sigma)
+# Evolution sans mutation sur le premier pas de temps t
+ode <-ode(N0,1:t,model,parms = sigma, method = 'lsoda')
 ode_mutation <- ode
 
 #trouver un moyen de faire muter tout le monde... (peut etre metre un seuil de densité min..)
 
-for (z in 2:(T/t)){
-  N0 <- t(as.matrix(tail(ode,1)[,1:i+1]))
-  a = runif(1)
-  index = which.max(N0)
-  if (a<0.5){ #mutation vers la gauche
-    N0[max(0,index-1)] <- p*N0[index]
-    N0[index] <- (1-p)*N0[index]
-  } else { #mutation vers la droite
-    N0[min(i,index+1)] <- p*N0[index]
-    N0[index] <- (1-p)*N0[index]
-  }
-  ode <-ode(N0,(z*t):(z*t+t),model,parms = sigma)
+seuil = 0.05 #densité min on considère qu un trait en dessous a une densité de 0
+
+
+for (z in 2:(Temps/t)){
   
-  ode_mutation <- rbind(ode_mutation,ode)
+  #Elimination des traits sous le seuil
+  tail <- as.matrix(tail(ode,1)[,1:i+1])
+  for (j in 1:length(tail)){
+    if(tail[j] < seuil){
+      tail[j] <- 0
+    }
+  }
+  N0 <- t(tail)
+  
+  # Mutation des traits restants
+  for (index in which(tail != 0)){
+    a = runif(1)
+    if (a<0.5){ #mutation vers la gauche
+      N0[max(0,index-1)] <- p*N0[index]
+      N0[index] <- (1-p)*N0[index]
+    } else { #mutation vers la droite
+      N0[min(i,index+1)] <- p*N0[index]
+      N0[index] <- (1-p)*N0[index]
+    }
+   
+  }
+  
+  
+  ode <-ode(N0,(z*t):(z*t+t),model,parms = sigma, method='lsoda')
+  
+  ode_mutation <- rbind(ode_mutation,ode) 
+
 }
 
 ode_mutation_plot = as.data.frame(ode_mutation)%>%
