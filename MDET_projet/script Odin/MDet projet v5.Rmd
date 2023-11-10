@@ -201,19 +201,16 @@ Evolution de la densité des populations selon la valeur du trait pour sigma = 5
 sigma = 5
 # Representation
 
-ode <- ode(N0,0:time_max,model,parms = sigma)
+ode <-ode(N0,0:time_max,model,parms = sigma)
 
 ode <- as.data.frame(ode)
 #colnames(ode) <- c("t",'x1','x2','x3')
 ode_plot = ode%>%
-  pivot_longer(-time, values_to = "dens", names_to = "sp_ID") %>% 
-  mutate(sp_ID = sp_ID %>% as.factor())
-
-ode_plot %>% str()
+  pivot_longer(-time, values_to = "dens", names_to = "sp_ID")
 
 ggplot(ode_plot)+
   geom_line(aes(time, dens, col = sp_ID))+
-  labs(col = "Population \nidentity") +
+  labs(col = "Population \nidentity")+
   xlab("Time") + ylab("Population density")+
   ggtitle("σ = 5")
 ```
@@ -386,4 +383,4 @@ ggplot(ode_mutation_plot)+
 ```
 
 
-On constate effectivement en premier lieu une convergence vers la valeur de trait optimale = 1 (Attractivité de x = 1), puis des branchements évolutif vers d'autres valeurs de phénotypes (Instabilité de x = 1). 
+On constate effectivement en premier lieu une convergence vers la valeur de trait optimale = 1 (Attractivité de x = 1), puis des branchements évolutif vers d'autres valeures de phénotypes (Instabilité de x = 1). 
