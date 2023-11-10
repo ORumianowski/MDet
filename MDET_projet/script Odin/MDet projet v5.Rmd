@@ -15,6 +15,13 @@ output :
 knitr::opts_chunk$set(echo = TRUE, cache=TRUE)
 ```
 
+```{r}
+# Effacer toutes les variables de l'espace de travail
+rm(list = ls())
+
+```
+
+
 ```{r, include= FALSE}
 library(rgl)
 library(deSolve)
@@ -37,7 +44,7 @@ main_theme = theme_bw()+
         axis.title=element_text(size=28))
 ```
 
-# Modele ecologique
+# Modèle écologique
 
 On considere un modèle de competition. Dans notre modèle, 21 phénotypes dont le trait X est distribué sur un intervalle allant de 0 à 2, sont en compétition. Chaque population de chaque phénotype possède un taux de croissance intrasèque identique r. La densité maximale est spécifique à chaque phénotype et dépend uniquement de la valeur de son trait selon la formule :
 
@@ -48,7 +55,7 @@ $$ a(x_i, x_j) =exp(-\frac{(x_i-xj)^2}{2σ^2})  $$
 La dynamique de chaque population s'écrit alors :
 
 $$ \frac{dn_i}{dt} = r.n_i.(\sum_{j=1}^{n} \frac{a(x_i, x_j).n_j}{K(x_i)} )  $$
-Pour l'ensemble des manipulations, on fixe certaines valeurs par défaut aux paramètres.
+Pour l'ensemble des manipulations, on fixe certaines valeures par défaut aux paramètres.
 
 ```{r}
 #Parametres
@@ -63,7 +70,7 @@ r = 1
 
 ```
 
-On implèmente les fonctions mathématiques du modèle.
+On implémente les fonctions mathématiques du modèle.
 ```{r}
 ############ Fonctions #############
 
@@ -109,8 +116,8 @@ Le Pairwise Invasibily Plot (PIP) fournit un résumé de la situation en représ
 
 ```{r}
 ## Set range and domain of plot
-x1_interval  <- seq(0.1, 1.9, length.out = 500);
-x2_interval  <- seq(0.1, 1.9, length.out = 500);
+x1_interval  <- seq(from = 0.1, to = 1.9, length.out = 500);
+x2_interval  <- seq(from = 0.1, to =1.9, length.out = 500);
 
 ## Interpolate surface
 
@@ -120,17 +127,19 @@ z  <- outer(x1_interval,x2_interval,
 couleurs <- ifelse(z > 0, "lightblue", "black")
 
 matrice_couleurs = couleurs
-df <- data.frame(x = rep(1:nrow(matrice_couleurs), each = ncol(matrice_couleurs)),
-                 y = rep(1:ncol(matrice_couleurs), times = nrow(matrice_couleurs)),
+df <- data.frame(x = rep(x1_interval, each = ncol(matrice_couleurs)),
+                 y = rep(x2_interval, times = nrow(matrice_couleurs)),
                  couleur = as.vector(matrice_couleurs))
 
 ggplot(df, aes(x = x, y = y, fill = couleur)) +
   geom_tile() +
   scale_fill_identity() +
-  labs(title = "PIP") +
+  labs(title = "PIP", xlab = 'x1', ylab = 'x2') +
   theme_minimal()+
   labs(fill = "Légende\nNoir = Négatif\nBleu = Positif")
 ```
+On déduit de ce PIP que le trait x = 1 est instable et attractif, il remplit les conditions pour être un 'branching point' ce qui sera visualisé dans la suite (partie sur la dynamique évolutive avec simulation de mutations). 
+
 ```{r, include = FALSE}
 
 # On rajoute 10^-9 pour ne pas avoir de pb de division par 0
@@ -140,9 +149,9 @@ K_cap = function(x, K0_ = K0, lambda_= lambda, x0 = X0){
 
 ```
 
-# Simulations
+# Simulations Lotka-Volterra
 
-Pour simuler ces compétitions, le modèle est implémenté sous forme matricielle. La dynamique est simulée pour un temps de 1000 et pour deux valeurs de sigma.
+Pour simuler les compétitions, le modèle est implémenté sous forme matricielle. La dynamique est simulée pour un temps de 1000 et pour deux valeures de sigma.
 
 ```{r}
 
@@ -178,11 +187,12 @@ model <- function(t,N,sigma){
   return(list(dN))
 }
 
-ode <-ode(N0,0:time_max,model,parms = sigma)
+#ode <-ode(N0,0:time_max,model,parms = sigma)
 
 
 ```
 
+Evolution de la densité des populations selon la valeur du trait pour sigma = 5 (faible étalement de la compétition)
 ```{r}
 
 sigma = 5
@@ -199,6 +209,19 @@ ggplot(ode_plot)+
   geom_line(aes(time, dens, col = sp_ID))
 ```
 
+Etalement de la compétition avec sigma = 5
+```{r}
+ode_plot$sp_ID <- as.numeric(ode_plot$sp_ID)
+ode_plot$trait <- x[as.numeric(ode_plot$sp_ID)]
+
+ggplot(ode_plot)+
+  geom_raster(aes(trait, time,  fill=dens**2))+
+  scale_fill_gradient2(low = "white" ,
+                       high = "red")
+```
+
+
+Evolution de la densité des populations selon la valeur du trait pour sigma = 0.3 (fort étalement de la compétition)
 ```{r}
 sigma = 0.3
 # Representation
@@ -214,8 +237,7 @@ ggplot(ode_plot)+
   geom_line(aes(time, dens, col = sp_ID))
 ```
 
-
-On observe que le nombre de phénotypes sui persistent dans le temps dépend notamment de la valeurs de sigma. Pour des faibles valeurs, un plus grand nombres de phénotypes se maintiennent.
+Etalement de la compétition avec sigma = 0.3
 
 ```{r}
 ode_plot$sp_ID <- as.numeric(ode_plot$sp_ID)
@@ -226,6 +248,10 @@ ggplot(ode_plot)+
   scale_fill_gradient2(low = "white" ,
                        high = "red")
 ```
+
+On observe que le nombre de phénotypes qui persistent dans le temps dépend notamment de la valeurs de sigma. Pour des faibles valeurs, un plus grand nombre de phénotypes se maintiennent.
+
+
 
 Le script et le graphique suivant permettent d'étudier le nombre de phénotypes se maintenant en fonction de la valeur de sigma. Les valeurs de sigma testées sont comprises entre 0.1 et 2.
 
@@ -255,9 +281,9 @@ ggplot()+
 
 ```
 
-# Modelisation de mutations
+# Modélisation de mutations : Dynamique adaptative
 
-Dans cette partie, on modélise la dynamique adaptative sur le temps long (T) d'une population en considérant que p = 10% de la population mute à intervalle de temps régulier (t). La population initiale est monomorphe et l'étalement de la compétition (sigma = 0.3) est assez faible.
+Dans cette partie, on modélise la dynamique adaptative sur le temps long (T) d'une population en considérant que p = 10% de la population mute à intervalle de temps régulier (t). La population initiale est monomorphe et l'étalement de la compétition (sigma = 0.3) est important, on s'attend donc à ce que sur le temps long beaucoup de phénotypes apparaissent et se mantiennent.
 
 ```{r}
 #Implementation des mutations
@@ -278,7 +304,7 @@ for (i in 1:length(x)){
 }
 K = matrix(rep(k,i), ncol = i, nrow = i, byrow = FALSE)
 
-M = A/t(K)
+M = exp(-0.5*D^2/(sigma^2))/t(K)
 
 # Evolution sans mutation sur le premier pas de temps t
 ode <-ode(N0,1:t,model,parms = sigma, method = 'lsoda')
@@ -333,4 +359,4 @@ ode_mutation_plot$trait <- x[as.numeric(ode_mutation_plot$sp_ID)]
 ```
 
 
-
+On constate effectivement en premier lieu une convergence vers la valeur de trait optimale = 1 (Attractivité de x = 1), puis des branchements evolutif vers d'autres valeures de phénotypes (Instabilité de x = 1). 
