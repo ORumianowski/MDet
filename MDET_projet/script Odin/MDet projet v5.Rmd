@@ -206,10 +206,16 @@ ode <- ode(N0,0:time_max,model,parms = sigma)
 ode <- as.data.frame(ode)
 #colnames(ode) <- c("t",'x1','x2','x3')
 ode_plot = ode%>%
-  pivot_longer(-time, values_to = "dens", names_to = "sp_ID")
+  pivot_longer(-time, values_to = "dens", names_to = "sp_ID") %>% 
+  mutate(sp_ID = sp_ID %>% as.factor())
+
+ode_plot %>% str()
 
 ggplot(ode_plot)+
-  geom_line(aes(time, dens, col = sp_ID))
+  geom_line(aes(time, dens, col = sp_ID))+
+  labs(col = "Population \nidentity") +
+  xlab("Time") + ylab("Population density")+
+  ggtitle("σ = 5")
 ```
 
 Etalement de la compétition avec sigma = 5
@@ -220,7 +226,10 @@ ode_plot$trait <- x[as.numeric(ode_plot$sp_ID)]
 ggplot(ode_plot)+
   geom_raster(aes(trait, time,  fill=dens**2))+
   scale_fill_gradient2(low = "white" ,
-                       high = "red")
+                       high = "red")+
+  labs(fill = "Population \ndensity")+
+  xlab("Trait") + ylab("Time")+
+  ggtitle("σ = 5")
 ```
 
 
@@ -237,7 +246,10 @@ ode_plot = ode%>%
   pivot_longer(-time, values_to = "dens", names_to = "sp_ID")
 
 ggplot(ode_plot)+
-  geom_line(aes(time, dens, col = sp_ID))
+  geom_line(aes(time, dens, col = sp_ID))+
+  labs(col = "Population \nidentity")+
+  xlab("Time") + ylab("Population density")+
+  ggtitle("σ = 0.3")
 ```
 
 Etalement de la compétition avec sigma = 0.3
@@ -249,7 +261,10 @@ ode_plot$trait <- x[as.numeric(ode_plot$sp_ID)]
 ggplot(ode_plot)+
   geom_raster(aes(trait, time,  fill=dens**2))+
   scale_fill_gradient2(low = "white" ,
-                       high = "red")
+                       high = "red")+
+  labs(fill = "Population \ndensity")+
+  xlab("Trait") + ylab("Time")+
+  ggtitle("σ = 0.3")
 ```
 
 On observe que le nombre de phénotypes qui persistent dans le temps dépend notamment de la valeurs de sigma. Pour des faibles valeurs, un plus grand nombre de phénotypes se maintiennent.
