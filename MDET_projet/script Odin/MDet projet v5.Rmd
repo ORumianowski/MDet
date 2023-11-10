@@ -17,7 +17,7 @@ output :
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r}
+```{r, include= FALSE}
 # Effacer toutes les variables de l'espace de travail
 rm(list = ls())
 
@@ -48,7 +48,7 @@ main_theme = theme_bw()+
 
 # Modèle écologique
 
-On considere un modèle de competition. Dans notre modèle, 21 phénotypes dont le trait X est distribué sur un intervalle allant de 0 à 2, sont en compétition. Chaque population de chaque phénotype possède un taux de croissance intrasèque identique r. La densité maximale est spécifique à chaque phénotype et dépend uniquement de la valeur de son trait selon la formule :
+On considère un modèle de compétition Dans notre modèle, 21 phénotypes dont le trait X est distribué sur un intervalle allant de 0 à 2, sont en compétition. Chaque population de chaque phénotype possède un taux de croissance intrinsèque  identique r. La densité maximale est spécifique à chaque phénotype et dépend uniquement de la valeur de son trait selon la formule :
 
 $$ K(x) = max(K_0 - λ(x-x_0)^2, 0) $$
 L'intensité de la compétition entre deux phénotypes i et j vaut : 
@@ -57,7 +57,7 @@ $$ a(x_i, x_j) =exp(-\frac{(x_i-xj)^2}{2σ^2})  $$
 La dynamique de chaque population s'écrit alors :
 
 $$ \frac{dn_i}{dt} = r.n_i.(\sum_{j=1}^{n} \frac{a(x_i, x_j).n_j}{K(x_i)} )  $$
-Pour l'ensemble des manipulations, on fixe certaines valeures par défaut aux paramètres.
+Pour l'ensemble des manipulations, on fixe certaines valeurs  par défaut aux paramètres.
 
 ```{r}
 #Parametres
@@ -93,7 +93,7 @@ fitness = function(x1, x2, r_ = r ){
 
 # Fitness d'invasion
 
-Afin de comprendre ce qu'implique notre modèle avec les valeurs de ses paramètres initiaux, nous représentons graphiquement la valeur de la fitness relative dans le cas de l'apparition d'un nouveau phénotype. Ces figure en trois dimensions fournissent le paysage adaptatif de notre modèle.
+Afin de comprendre ce qu'implique notre modèle avec les valeurs de ses paramètres initiaux, nous représentons graphiquement la valeur de la fitness relative dans le cas de l'apparition d'un nouveau phénotype. Ces figures en trois dimensions fournissent le paysage adaptatif de notre modèle.
 
 ```{r}
 ## Set range and domain of plot
@@ -154,7 +154,7 @@ K_cap = function(x, K0_ = K0, lambda_= lambda, x0 = X0){
 
 # Simulations Lotka-Volterra
 
-Pour simuler les compétitions, le modèle est implémenté sous forme matricielle. La dynamique est simulée pour un temps de 1000 et pour deux valeures de sigma.
+Pour simuler les compétitions, le modèle est implémenté sous forme matricielle. La dynamique est simulée pour un temps de 1000 et pour deux valeurs de sigma.
 
 ```{r}
 
@@ -267,7 +267,7 @@ ggplot(ode_plot)+
   ggtitle("σ = 0.3")
 ```
 
-On observe que le nombre de phénotypes qui persistent dans le temps dépend notamment de la valeurs de sigma. Pour des faibles valeurs, un plus grand nombre de phénotypes se maintiennent.
+On observe que le nombre de phénotypes qui persistent dans le temps dépend notamment de la valeur de sigma. Pour des faibles valeurs, un plus grand nombre de phénotypes se maintiennent.
 
 
 
@@ -299,9 +299,9 @@ ggplot()+
 
 ```
 
-# Modélisation de mutations : Dynamique adaptative
+# Modélisation de mutations : dynamique adaptative
 
-Dans cette partie, on modélise la dynamique adaptative sur le temps long (T) d'une population en considérant que p = 10% de la population mute à intervalle de temps régulier (t). La population initiale est monomorphe et l'étalement de la compétition (sigma = 0.2) est important, on s'attend donc à ce que sur le temps long beaucoup de phénotypes apparaissent et se mantiennent.
+Dans cette partie, on modélise la dynamique adaptative sur le temps long (T) d'une population en considérant que p = 10% de la population mute à intervalle de temps régulier (t). La population initiale est monomorphe et l'étalement de la compétition (sigma = 0.2) est important, on s'attend donc à ce que sur le temps long beaucoup de phénotypes apparaissent et se maintiennent
 
 ```{r}
 #Implementation des mutations
@@ -372,13 +372,18 @@ ode_mutation_plot = as.data.frame(ode_mutation)%>%
 
 ode_mutation_plot$sp_ID <- as.numeric(ode_mutation_plot$sp_ID)
 ode_mutation_plot$trait <- x[as.numeric(ode_mutation_plot$sp_ID)]
-
- ggplot(ode_mutation_plot)+
-   geom_tile(aes(trait, time, fill = dens))+
-   scale_fill_gradient2(low = "white" ,
-                        high = "red") +
-   main_theme
 ```
 
 
-On constate effectivement en premier lieu une convergence vers la valeur de trait optimale = 1 (Attractivité de x = 1), puis des branchements evolutif vers d'autres valeures de phénotypes (Instabilité de x = 1). 
+```{r}
+ggplot(ode_mutation_plot)+
+   geom_tile(aes(trait, time, fill = dens))+
+   scale_fill_gradient2(low = "white" ,
+                        high = "red") +
+  labs(fill = "Population \ndensity")+
+  xlab("Trait") + ylab("Time")+
+  ggtitle("Adaptative dynamics")
+```
+
+
+On constate effectivement en premier lieu une convergence vers la valeur de trait optimale = 1 (Attractivité de x = 1), puis des branchements évolutif vers d'autres valeurs de phénotypes (Instabilité de x = 1). 
