@@ -9,6 +9,8 @@ output :
     toc_float : yes
     warning : no
     message : no
+    fig_width: 5
+    fig_height: 4
 ---
 
 ```{r, echo = FALSE}
@@ -138,6 +140,7 @@ ggplot(df, aes(x = x, y = y, fill = couleur)) +
   theme_minimal()+
   labs(fill = "Légende\nNoir = Négatif\nBleu = Positif")
 ```
+
 On déduit de ce PIP que le trait x = 1 est instable et attractif, il remplit les conditions pour être un 'branching point' ce qui sera visualisé dans la suite (partie sur la dynamique évolutive avec simulation de mutations). 
 
 ```{r, include = FALSE}
@@ -277,13 +280,13 @@ ggplot()+
   geom_point(data = res, aes(x = sigma_bank, y = nb_especes))+
   labs(title = " ",
        x = "Sigma",
-       y = "Nombre d'espèces en régime stationnaire")
+       y = "Nombre d'espèces au régime stationnaire")
 
 ```
 
 # Modélisation de mutations : Dynamique adaptative
 
-Dans cette partie, on modélise la dynamique adaptative sur le temps long (T) d'une population en considérant que p = 10% de la population mute à intervalle de temps régulier (t). La population initiale est monomorphe et l'étalement de la compétition (sigma = 0.3) est important, on s'attend donc à ce que sur le temps long beaucoup de phénotypes apparaissent et se mantiennent.
+Dans cette partie, on modélise la dynamique adaptative sur le temps long (T) d'une population en considérant que p = 10% de la population mute à intervalle de temps régulier (t). La population initiale est monomorphe et l'étalement de la compétition (sigma = 0.2) est important, on s'attend donc à ce que sur le temps long beaucoup de phénotypes apparaissent et se mantiennent.
 
 ```{r}
 #Implementation des mutations
